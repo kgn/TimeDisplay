@@ -1,75 +1,74 @@
-__all__ = ['Runtime']
+import re
 
 k_min = 60
 k_hour = k_min*k_min
 k_day = k_hour*24
 
-def _Pluralize(s, pluralize):
-    if pluralize:
-        return '%ss' % s
-    return s
+k_findParts = re.compile('(%[^%]*)')
+k_partElement = re.compile('^(%\w)')
+k_partPluralize = re.compile('[^\(]*(\(.+\))')
 
-def _Seconds(seconds, secString, pluralize):
-    if seconds == 0:
-        return ''
-    if seconds == 1:
-        return '1 %s' % secString
-    return '%d %s' % (seconds, _Pluralize(secString, pluralize))
-
-def _Minute(seconds, secString, minString, pluralize):
-    if seconds == k_min:
-        return '1 %s' % minString
-    minutes = int(seconds/float(k_min))
-    newSeconds = seconds-minutes*k_min
-
-    if minutes > 1:
-        minString = _Pluralize(minString, pluralize)
-
-    output = ''
-    if minutes > 0:
-        output = '%d %s' % (minutes, minString)
-    if newSeconds > 0:
-        output = '%s %s' % (output, _Seconds(newSeconds, secString, pluralize))
-    return output.strip()
-
-def _Hour(seconds, secString, minString, hourString, pluralize):
-    if seconds == k_hour:
-        return '1 %s' % hourString
+def _Days(seconds):
+    days = int(seconds/float(k_day))
+    newSeconds = seconds-days*k_day  
+    return days, newSeconds
+    
+def _Hours(seconds):
     hours = int(seconds/float(k_hour))
     newSeconds = seconds-hours*k_hour
+    return hours, newSeconds
+    
+def _Minutes(seconds):
+    minutes = int(seconds/float(k_min))
+    newSeconds = seconds-minutes*k_min
+    return minutes, newSeconds
 
-    if hours > 1:
-        hourString = _Pluralize(hourString, pluralize)
-
-    output = ''
-    if hours > 0:
-        output = '%d %s' % (hours, hourString)
-    if newSeconds > 0:
-        output = '%s %s' % (output, _Minute(newSeconds, secString, minString, pluralize))
-    return output.strip()
-
-def _Day(seconds, secString, minString, hourString, dayString, pluralize):
-    if seconds == k_day:
-        return '1 %s' % dayString
-    days = int(seconds/float(k_day))
-    newSeconds = seconds-days*k_day
-
-    if days > 1:
-        dayString = _Pluralize(dayString, pluralize)
-
-    output = ''
-    if days > 0:
-        output = '%d %s' % (days, dayString)
-    if newSeconds > 0:
-        output = '%s %s' % (output, _Hour(newSeconds, secString, minString, hourString, pluralize))
-    return output.strip()
-
-def Runtime(seconds, second='second', minute='minute', hour='hour', day='day', pluralize=True):
-    if seconds < k_min:
-        return _Seconds(seconds, second, pluralize)
-    elif seconds < k_hour:
-        return _Minute(seconds, second, minute, pluralize)
-    elif seconds < k_day:
-        return _Hour(seconds, second, minute, hour, pluralize)
-    else:
-        return _Day(seconds, second, minute, hour, day, pluralize)
+def Seconds(seconds, string, displayZero=False):
+    values = []
+    replace = {
+        '%D' : 0,
+        '%H' : 0,
+        '%M' : 0,
+        '%S' : 0,
+    }
+    parts = k_findParts.findall(string)
+    partElements = [element[:2] for element in parts]
+    
+    replace['%S'] = seconds
+    if seconds >= k_min and '%M' in partElements:
+        minutes, newSeconds = _Minutes(seconds)
+        replace['%M'] = minutes
+        replace['%S'] = newSeconds
+    if seconds >= k_hour and '%H' in partElements:
+        hours, newSeconds = _Hours(seconds) 
+        replace['%H'] = hours
+        minutes, newSeconds = _Minutes(newSeconds)
+        replace['%M'] = minutes
+        replace['%S'] = newSeconds
+    if seconds >= k_day and '%D' in partElements:
+        days, newSeconds = _Days(seconds)
+        replace['%D'] = days
+        hours, newSeconds = _Hours(newSeconds) 
+        replace['%H'] = hours
+        minutes, newSeconds = _Minutes(newSeconds)
+        replace['%M'] = minutes
+        replace['%S'] = newSeconds
+    
+    for part in parts:
+        value = 0
+        element = k_partElement.match(part)
+        if element:
+            value = replace.get(element.group(1), 0)
+            part = part.replace(element.group(1), str(value))
+        if not displayZero and value == 0:
+            continue
+        pluralize = k_partPluralize.match(part)
+        if pluralize:
+            if value == 1:
+                part = part.replace(pluralize.group(1), '')
+            else:
+                part = part.replace(pluralize.group(1), pluralize.group(1)[1:-1])
+                
+        values.append(part)
+        
+    return ''.join(values).strip()
