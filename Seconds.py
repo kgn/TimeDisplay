@@ -23,7 +23,29 @@ def _Minutes(seconds):
     newSeconds = seconds-minutes*k_min
     return minutes, newSeconds
 
-def Seconds(seconds, string, displayZero=False):
+def Seconds(seconds, formatter, displayZero=False):
+    '''
+    Return a formatted string for a given number of seconds.
+    
+    The formatter string specifies how the result is formatted.
+        %D = day
+        %H = hour
+        %M = minute
+        %S = seconds
+        
+        %H hr %M min %S sec
+        
+    Pluralization can be specified by adding the plural characters in parenthesis
+    at the end of the string.
+        %D day(s) %H hour(s) %M minute(s) %S second(s)
+        
+    Not every element has to be included in the formatter string, if a larger element is 
+    excluded the smaller element will collect the over flow.
+        26 hours, instead of 1 day 2 hours
+        
+    By default 0 values are omitted, however passing True to displayZero will include
+    them in the result.
+    '''
     values = []
     replace = {
         '%D' : 0,
@@ -31,9 +53,12 @@ def Seconds(seconds, string, displayZero=False):
         '%M' : 0,
         '%S' : 0,
     }
-    parts = k_findParts.findall(string)
+    parts = k_findParts.findall(formatter)
     partElements = [element[:2] for element in parts]
     
+    #Set the element values, we start from smallest to largest
+    #so if a larger element isn't specified the smallerone
+    #contains the overflow. example: 26 hours, instead of 1 day 2 hours
     replace['%S'] = seconds
     if seconds >= k_min and '%M' in partElements:
         minutes, newSeconds = _Minutes(seconds)
@@ -56,12 +81,18 @@ def Seconds(seconds, string, displayZero=False):
     
     for part in parts:
         value = 0
+        
+        #replace the element key with it's value
         element = k_partElement.match(part)
         if element:
             value = replace.get(element.group(1), 0)
             part = part.replace(element.group(1), str(value))
+            
+        #determin if the element should be shown
         if not displayZero and value == 0:
             continue
+            
+        #determin if the element should be plural
         pluralize = k_partPluralize.match(part)
         if pluralize:
             part = part.replace(
