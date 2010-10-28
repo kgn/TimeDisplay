@@ -64,10 +64,10 @@ def Seconds(seconds, string, displayZero=False):
             continue
         pluralize = k_partPluralize.match(part)
         if pluralize:
-            if value == 1:
-                part = part.replace(pluralize.group(1), '')
-            else:
-                part = part.replace(pluralize.group(1), pluralize.group(1)[1:-1])
+            part = part.replace(
+                pluralize.group(1), 
+                '' if value == 1 else pluralize.group(1)[1:-1]
+            )
                 
         values.append(part)
         
