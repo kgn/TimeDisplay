@@ -1,1 +1,1 @@
-from Runtime import *
+from Seconds import *

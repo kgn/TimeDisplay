@@ -1,3 +1,5 @@
+__all__ = ['Seconds']
+
 import re
 
 k_min = 60
@@ -35,16 +37,13 @@ def Seconds(seconds, formatter, displayZero=False):
         
         %H hr %M min %S sec
         
-    Pluralization can be specified by adding the plural characters in parenthesis
-    at the end of the string.
+    Pluralization can be specified by adding the plural characters in parenthesis at the end of the string.
         %D day(s) %H hour(s) %M minute(s) %S second(s)
         
-    Not every element has to be included in the formatter string, if a larger element is 
-    excluded the smaller element will collect the over flow.
+    Not every element has to be included in the formatter string, if a larger element is excluded the smaller element will collect the over flow.
         26 hours, instead of 1 day 2 hours
         
-    By default 0 values are omitted, however passing True to displayZero will include
-    them in the result.
+    By default 0 values are omitted, however passing True to displayZero will include them in the result.
     '''
     values = []
     replace = {
